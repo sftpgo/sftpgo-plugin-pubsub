@@ -7,7 +7,9 @@ This plugin allows to send [SFTPGo](https://github.com/drakkan/sftpgo/) filesyst
 
 ## Configuration
 
-The supported services can be configured within the `plugins` section of the SFTPGo configuration file: you have to set the service publish URL as first plugin argument. This is an example configuration.
+The supported services can be configured within the `plugins` section of the SFTPGo configuration file: you have to set the service publish URL as first plugin argument. You can also set an, optional, instance id by passing a second argument. The instance id is useful if you are receiving notifications from multiple SFTPGo instances and want to identify where the events are coming from.
+
+This is an example configuration.
 
 ```json
 ...
@@ -19,14 +21,19 @@ The supported services can be configured within the `plugins` section of the SFT
           "download",
           "upload"
         ],
-        "user_events": [
+        "provider_events": [
           "add",
           "delete"
+        ],
+        "provider_objects": [
+          "user",
+          "admin",
+          "api_key"
         ],
         "retry_max_time": 60,
         "retry_queue_max_size": 1000
       },
-      "cmd": "<path to sftpgo-plugin-kms>",
+      "cmd": "<path to sftpgo-plugin-pubsub>",
       "args": ["rabbit://sftpgo"],
       "sha256sum": "",
       "auto_mtls": true
@@ -50,15 +57,29 @@ The filesystem events will contain a JSON serialized struct in the message body 
 - `username`
 - `fs_path`, string filesystem path
 - `fs_target_path`, string, included for `rename` action and `sftpgo-copy` SSH command
+- `virtual_path`, string, path seen by SFTPGo users
+- `virtual_target_path`, string, target path seen by SFTPGo users
 - `ssh_cmd`, string, included for `ssh_cmd` action
 - `file_size`, integer, included for `pre-upload`, `upload`, `download`, `delete` actions if the file size is greater than `0`
 - `status`, integer. 1 means no error
-- `protocol`, string. Possible values are `SSH`, `SFTP`, `SCP`, `FTP`, `DAV`, `HTTP`
+- `protocol`, string. Possible values are `SSH`, `SFTP`, `SCP`, `FTP`, `DAV`, `HTTP`, `DataRetention`
+- `ip`, string. The action was executed from this IP address
+- `instance_id`, string. Included if you pass an instance id as the second CLI parameter
 
-The user events will contain a JSON serialized user in the message body. The following fields are added as metadata:
+The `action` is also added as metadata.
+
+The provider events will contain a JSON serialized struct in the message body with the following fields:
 
 - `timestamp`, string formatted as RFC3339 with nanoseconds precision
-- `action`, string, possible values are: `add`, `update`, `delete`
+- `action`, string, an SFTPGo supported action
+- `username`, string, the username that executed the action. There are two special usernames: `__self__` identifies a user/admin that updates itself and `__system__` identifies an action that does not have an explicit executor associated with it, for example users/admins can be added/updated by loading them from initial data
+- `ip`, string. The action was executed from this IP address
+- `object_type`, string. Afftected object type, for example `user`, `admin`, `api_key`
+- `object_name`, string. Unique identifier for the affected object, for example username or key id
+- `object_data`, base64 of the JSON serialized object with sensitive fields removed
+- `instance_id`, string. Included if you pass an instance id as the second CLI parameter
+
+The `action` and the `object_type`are also added as metadata.
 
 ## Supported services
 

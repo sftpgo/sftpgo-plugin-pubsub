@@ -5,7 +5,7 @@ on:
     tags: 'v*'
 
 env:
-  GO_VERSION: 1.16.6
+  GO_VERSION: 1.17.2
 
 jobs:
   build:
@@ -25,6 +25,7 @@ jobs:
           mkdir bin
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w -X main.commitHash=`git describe --always --dirty` -X main.date=`date -u +%FT%TZ`" -o bin/sftpgo-plugin-pubsub-linux-amd64
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags "-s -w -X main.commitHash=`git describe --always --dirty` -X main.date=`date -u +%FT%TZ`" -o bin/sftpgo-plugin-pubsub-linux-arm64
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build -trimpath -ldflags "-s -w -X main.commitHash=`git describe --always --dirty` -X main.date=`date -u +%FT%TZ`" -o bin/sftpgo-plugin-pubsub-linux-armv7
           CGO_ENABLED=0 GOOS=linux GOARCH=ppc64le go build -trimpath -ldflags "-s -w -X main.commitHash=`git describe --always --dirty` -X main.date=`date -u +%FT%TZ`" -o bin/sftpgo-plugin-pubsub-linux-ppc64le
           CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-s -w -X main.commitHash=`git describe --always --dirty` -X main.date=`date -u +%FT%TZ`" -o bin/sftpgo-plugin-pubsub-windows-amd64.exe
           CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags "-s -w -X main.commitHash=`git describe --always --dirty` -X main.date=`date -u +%FT%TZ`" -o bin/sftpgo-plugin-pubsub-darwin-amd64

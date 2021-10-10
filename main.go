@@ -20,7 +20,7 @@ import (
 	"github.com/drakkan/sftpgo/v2/sdk/plugin/notifier"
 )
 
-const version = "0.9.0-dev"
+const version = "0.9.1-dev"
 
 var (
 	commitHash = ""
@@ -33,36 +33,57 @@ var appLogger = hclog.New(&hclog.LoggerOptions{
 })
 
 type fsEvent struct {
-	Timestamp    string `json:"timestamp"`
-	Action       string `json:"action"`
-	Username     string `json:"username"`
-	FsPath       string `json:"fs_path"`
-	FsTargetPath string `json:"fs_target_path,omitempty"`
-	SSHCmd       string `json:"ssh_cmd,omitempty"`
-	FileSize     int64  `json:"file_size,omitempty"`
-	Status       int    `json:"status"`
-	Protocol     string `json:"protocol"`
+	Timestamp         string `json:"timestamp"`
+	Action            string `json:"action"`
+	Username          string `json:"username"`
+	FsPath            string `json:"fs_path"`
+	FsTargetPath      string `json:"fs_target_path,omitempty"`
+	VirtualPath       string `json:"virtual_path"`
+	VirtualTargetPath string `json:"virtual_target_path,omitempty"`
+	SSHCmd            string `json:"ssh_cmd,omitempty"`
+	FileSize          int64  `json:"file_size,omitempty"`
+	Status            int    `json:"status"`
+	Protocol          string `json:"protocol"`
+	IP                string `json:"ip"`
+	InstanceID        string `json:"instance_id,omitempty"`
+}
+
+type providerEvent struct {
+	Timestamp  string `json:"timestamp"`
+	Action     string `json:"action"`
+	Username   string `json:"username"`
+	IP         string `json:"ip"`
+	ObjectType string `json:"object_type"`
+	ObjectName string `json:"object_name"`
+	ObjectData []byte `json:"object_data"`
+	InstanceID string `json:"instance_id,omitempty"`
 }
 
 type pubSubNotifier struct {
-	topic   *pubsub.Topic
-	timeout time.Duration
+	topic      *pubsub.Topic
+	timeout    time.Duration
+	instanceID string
 }
 
-func (n *pubSubNotifier) NotifyFsEvent(timestamp time.Time, action, username, fsPath, fsTargetPath, sshCmd, protocol string,
-	fileSize int64, status int) error {
+func (n *pubSubNotifier) NotifyFsEvent(timestamp time.Time, action, username, fsPath, fsTargetPath, sshCmd, protocol, ip,
+	virtualPath, virtualTargetPath string, fileSize int64, status int,
+) error {
 	ctx, cancelFn := context.WithDeadline(context.Background(), time.Now().Add(n.timeout))
 	defer cancelFn()
 
 	ev := fsEvent{
-		Timestamp:    timestamp.UTC().Format(time.RFC3339Nano),
-		Action:       action,
-		Username:     username,
-		FsPath:       fsPath,
-		FsTargetPath: fsTargetPath,
-		Protocol:     protocol,
-		FileSize:     fileSize,
-		Status:       status,
+		Timestamp:         timestamp.UTC().Format(time.RFC3339Nano),
+		Action:            action,
+		Username:          username,
+		FsPath:            fsPath,
+		FsTargetPath:      fsTargetPath,
+		VirtualPath:       virtualPath,
+		VirtualTargetPath: virtualTargetPath,
+		Protocol:          protocol,
+		IP:                ip,
+		FileSize:          fileSize,
+		Status:            status,
+		InstanceID:        n.instanceID,
 	}
 	msg, err := json.Marshal(ev)
 	if err != nil {
@@ -78,25 +99,43 @@ func (n *pubSubNotifier) NotifyFsEvent(timestamp time.Time, action, username, fs
 	})
 	if err != nil {
 		appLogger.Warn("unable to publish fs event to topic", "action", action, "username", username,
-			"fs path", fsPath, "error", err)
+			"virtual path", virtualPath, "error", err)
 		panic(err)
 	}
 	return nil
 }
 
-func (n *pubSubNotifier) NotifyUserEvent(timestamp time.Time, action string, user []byte) error {
+func (n *pubSubNotifier) NotifyProviderEvent(timestamp time.Time, action, username, objectType, objectName, ip string,
+	object []byte,
+) error {
 	ctx, cancelFn := context.WithDeadline(context.Background(), time.Now().Add(n.timeout))
 	defer cancelFn()
 
-	err := n.topic.Send(ctx, &pubsub.Message{
-		Body: user,
+	ev := providerEvent{
+		Timestamp:  timestamp.UTC().Format(time.RFC3339Nano),
+		Action:     action,
+		Username:   username,
+		IP:         ip,
+		ObjectType: objectType,
+		ObjectName: objectName,
+		ObjectData: object,
+		InstanceID: n.instanceID,
+	}
+	msg, err := json.Marshal(ev)
+	if err != nil {
+		appLogger.Warn("unable to marshal provider event", "error", err)
+		return err
+	}
+
+	err = n.topic.Send(ctx, &pubsub.Message{
+		Body: msg,
 		Metadata: map[string]string{
-			"action":    action,
-			"timestamp": timestamp.UTC().Format(time.RFC3339Nano),
+			"action":      action,
+			"object_type": objectType,
 		},
 	})
 	if err != nil {
-		appLogger.Warn("unable to publish user event to topic", "action", action, "error", err)
+		appLogger.Warn("unable to publish provider event to topic", "action", action, "error", err)
 		panic(err)
 	}
 	return nil
@@ -121,9 +160,13 @@ func main() {
 		appLogger.Error("please specify the topic url as command line argument")
 		os.Exit(1)
 	}
-
+	var instanceID string
 	topicUrl := os.Args[1]
-	appLogger.Info("starting sftpgo-plugin-pubsub", "version", getVersionString(), "topic", topicUrl)
+	if len(os.Args) > 2 {
+		instanceID = os.Args[2]
+	}
+	appLogger.Info("starting sftpgo-plugin-pubsub", "version", getVersionString(), "topic", topicUrl,
+		"instance id", instanceID)
 
 	ctx, cancelFn := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancelFn()
@@ -146,8 +189,9 @@ func main() {
 		HandshakeConfig: notifier.Handshake,
 		Plugins: map[string]plugin.Plugin{
 			notifier.PluginName: &notifier.Plugin{Impl: &pubSubNotifier{
-				topic:   topic,
-				timeout: 30 * time.Second,
+				topic:      topic,
+				timeout:    30 * time.Second,
+				instanceID: instanceID,
 			}},
 		},
 		GRPCServer: plugin.DefaultGRPCServer,
