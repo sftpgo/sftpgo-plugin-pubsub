@@ -3,7 +3,7 @@
 ![Build](https://github.com/sftpgo/sftpgo-plugin-pubsub/workflows/Build/badge.svg?branch=main&event=push)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-This plugin allows to send [SFTPGo](https://github.com/drakkan/sftpgo/) filesystem and user events to publish/subscribe systems. It is not meant to react to `pre-*` events. It simply forwards the configured events to an external pub/sub system.
+This plugin allows to send [SFTPGo](https://github.com/drakkan/sftpgo/) filesystem and provider events to publish/subscribe systems. It is not meant to react to `pre-*` events. It simply forwards the configured events to an external pub/sub system.
 
 ## Configuration
 
@@ -42,7 +42,7 @@ This is an example configuration.
 ...
 ```
 
-With the above example SFTPGo is configured to connect to [RabbitMQ](https://www.rabbitmq.com/) and publish messages to the `sftpgo` fanout exchange. The RabbitMQ’s server is discovered from the `RABBIT_SERVER_URL` environment variable (which is something like `amqp://guest:guest@localhost:5672/`).
+With the above example the plugin is configured to connect to [RabbitMQ](https://www.rabbitmq.com/) and publish messages to the `sftpgo` fanout exchange. The RabbitMQ’s server is discovered from the `RABBIT_SERVER_URL` environment variable (which is something like `amqp://guest:guest@localhost:5672/`).
 
 The plugin will not start if it fails to connect to the configured service, this will prevent SFTPGo from starting.
 
