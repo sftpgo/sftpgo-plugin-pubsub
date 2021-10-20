@@ -65,14 +65,14 @@ type pubSubNotifier struct {
 	instanceID string
 }
 
-func (n *pubSubNotifier) NotifyFsEvent(timestamp time.Time, action, username, fsPath, fsTargetPath, sshCmd, protocol, ip,
+func (n *pubSubNotifier) NotifyFsEvent(timestamp int64, action, username, fsPath, fsTargetPath, sshCmd, protocol, ip,
 	virtualPath, virtualTargetPath string, fileSize int64, status int,
 ) error {
 	ctx, cancelFn := context.WithDeadline(context.Background(), time.Now().Add(n.timeout))
 	defer cancelFn()
 
 	ev := fsEvent{
-		Timestamp:         timestamp.UTC().Format(time.RFC3339Nano),
+		Timestamp:         getTimeFromNsecSinceEpoch(timestamp).UTC().Format(time.RFC3339Nano),
 		Action:            action,
 		Username:          username,
 		FsPath:            fsPath,
@@ -105,14 +105,14 @@ func (n *pubSubNotifier) NotifyFsEvent(timestamp time.Time, action, username, fs
 	return nil
 }
 
-func (n *pubSubNotifier) NotifyProviderEvent(timestamp time.Time, action, username, objectType, objectName, ip string,
+func (n *pubSubNotifier) NotifyProviderEvent(timestamp int64, action, username, objectType, objectName, ip string,
 	object []byte,
 ) error {
 	ctx, cancelFn := context.WithDeadline(context.Background(), time.Now().Add(n.timeout))
 	defer cancelFn()
 
 	ev := providerEvent{
-		Timestamp:  timestamp.UTC().Format(time.RFC3339Nano),
+		Timestamp:  getTimeFromNsecSinceEpoch(timestamp).UTC().Format(time.RFC3339Nano),
 		Action:     action,
 		Username:   username,
 		IP:         ip,
@@ -139,6 +139,10 @@ func (n *pubSubNotifier) NotifyProviderEvent(timestamp time.Time, action, userna
 		panic(err)
 	}
 	return nil
+}
+
+func getTimeFromNsecSinceEpoch(nsec int64) time.Time {
+	return time.Unix(0, nsec)
 }
 
 func getVersionString() string {

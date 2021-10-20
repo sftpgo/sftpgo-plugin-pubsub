@@ -3,8 +3,8 @@ module github.com/sftpgo/sftpgo-plugin-pubsub
 go 1.17
 
 require (
-	github.com/drakkan/sftpgo/v2 v2.1.1-0.20211017144305-3bbe67571f76
-	github.com/frankban/quicktest v1.13.1 // indirect
+	github.com/drakkan/sftpgo/v2 v2.1.1-0.20211020173949-97d0a4855756
+	github.com/frankban/quicktest v1.14.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/go-hclog v1.0.0
 	github.com/hashicorp/go-plugin v1.4.3
@@ -18,8 +18,8 @@ require (
 	cloud.google.com/go v0.97.0 // indirect
 	cloud.google.com/go/pubsub v1.17.0 // indirect
 	github.com/Azure/azure-amqp-common-go/v3 v3.2.1 // indirect
-	github.com/Azure/azure-service-bus-go v0.11.2 // indirect
-	github.com/Azure/go-amqp v0.16.0 // indirect
+	github.com/Azure/azure-service-bus-go v0.11.3 // indirect
+	github.com/Azure/go-amqp v0.16.1 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.11.21 // indirect
 	github.com/Azure/go-autorest/autorest/adal v0.9.16 // indirect
@@ -28,7 +28,7 @@ require (
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
 	github.com/Shopify/sarama v1.30.0 // indirect
-	github.com/aws/aws-sdk-go v1.41.4 // indirect
+	github.com/aws/aws-sdk-go v1.41.6 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.9.2 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.8.3 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.4.3 // indirect
@@ -75,15 +75,15 @@ require (
 	github.com/streadway/amqp v1.0.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
-	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f // indirect
+	golang.org/x/net v0.0.0-20211020060615-d418f374d309 // indirect
 	golang.org/x/oauth2 v0.0.0-20211005180243-6b3c2da341f1 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20211015200801-69063c4bb744 // indirect
+	golang.org/x/sys v0.0.0-20211020174200-9d6173849985 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	google.golang.org/api v0.58.0 // indirect
+	google.golang.org/api v0.59.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20211016002631-37fc39342514 // indirect
+	google.golang.org/genproto v0.0.0-20211020151524-b7c3a969101a // indirect
 	google.golang.org/grpc v1.41.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
