@@ -62,8 +62,9 @@ The filesystem events will contain a JSON serialized struct in the message body 
 - `ssh_cmd`, string, included for `ssh_cmd` action
 - `file_size`, integer, included for `pre-upload`, `upload`, `download`, `delete` actions if the file size is greater than `0`
 - `status`, integer. 1 means no error, 2 means a generic error occurred, 3 means quota exceeded error
-- `protocol`, string. Possible values are `SSH`, `SFTP`, `SCP`, `FTP`, `DAV`, `HTTP`, `DataRetention`
+- `protocol`, string. Possible values are `SSH`, `SFTP`, `SCP`, `FTP`, `DAV`, `HTTP`, `HTTPShare`, `DataRetention`
 - `ip`, string. The action was executed from this IP address
+- `session_id`, string. Unique protocol session identifier. For stateless protocols such as HTTP the session id will change for each request
 - `instance_id`, string. Included if you pass an instance id as the second CLI parameter
 
 The `action` is also added as metadata.

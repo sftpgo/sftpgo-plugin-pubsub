@@ -20,7 +20,7 @@ import (
 	"github.com/drakkan/sftpgo/v2/sdk/plugin/notifier"
 )
 
-const version = "0.9.1-dev"
+const version = "1.0.0-dev"
 
 var (
 	commitHash = ""
@@ -45,6 +45,7 @@ type fsEvent struct {
 	Status            int    `json:"status"`
 	Protocol          string `json:"protocol"`
 	IP                string `json:"ip"`
+	SessionID         string `json:"session_id"`
 	InstanceID        string `json:"instance_id,omitempty"`
 }
 
@@ -66,7 +67,7 @@ type pubSubNotifier struct {
 }
 
 func (n *pubSubNotifier) NotifyFsEvent(timestamp int64, action, username, fsPath, fsTargetPath, sshCmd, protocol, ip,
-	virtualPath, virtualTargetPath string, fileSize int64, status int,
+	virtualPath, virtualTargetPath, sessionID string, fileSize int64, status int,
 ) error {
 	ctx, cancelFn := context.WithDeadline(context.Background(), time.Now().Add(n.timeout))
 	defer cancelFn()
@@ -81,6 +82,7 @@ func (n *pubSubNotifier) NotifyFsEvent(timestamp int64, action, username, fsPath
 		VirtualTargetPath: virtualTargetPath,
 		Protocol:          protocol,
 		IP:                ip,
+		SessionID:         sessionID,
 		FileSize:          fileSize,
 		Status:            status,
 		InstanceID:        n.instanceID,
