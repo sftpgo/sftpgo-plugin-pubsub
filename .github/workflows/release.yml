@@ -43,7 +43,7 @@ jobs:
           osslsigncode sign -pkcs12 cert.pfx -pass $CERT_PASS -n "SFTPGo plugin pubsub" -i "https://github.com/sftpgo/sftpgo-plugin-pubsub" -ts "http://timestamp.sectigo.com" -h sha2 -in sftpgo-plugin-pubsub-windows-x86_64.exe -out bin/sftpgo-plugin-pubsub-windows-x86_64.exe
           osslsigncode sign -pkcs12 cert.pfx -pass $CERT_PASS -n "SFTPGo plugin pubsub" -i "https://github.com/sftpgo/sftpgo-plugin-pubsub" -ts "http://timestamp.sectigo.com" -h sha2 -in sftpgo-plugin-pubsub-windows-arm64.exe -out bin/sftpgo-plugin-pubsub-windows-arm64.exe
           osslsigncode sign -pkcs12 cert.pfx -pass $CERT_PASS -n "SFTPGo plugin pubsub" -i "https://github.com/sftpgo/sftpgo-plugin-pubsub" -ts "http://timestamp.sectigo.com" -h sha2 -in sftpgo-plugin-pubsub-windows-x86.exe -out bin/sftpgo-plugin-pubsub-windows-x86.exe
-          rm -f cert.pfx
+          rm -f cert.pfx *.exe *.syso
 
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w -X main.commitHash=`git describe --always --dirty` -X main.date=`date -u +%FT%TZ`" -o bin/sftpgo-plugin-pubsub-linux-amd64
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags "-s -w -X main.commitHash=`git describe --always --dirty` -X main.date=`date -u +%FT%TZ`" -o bin/sftpgo-plugin-pubsub-linux-arm64

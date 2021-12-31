@@ -20,7 +20,7 @@ import (
 	"github.com/drakkan/sftpgo/v2/sdk/plugin/notifier"
 )
 
-const version = "1.0.0-dev"
+const version = "1.0.1"
 
 var (
 	commitHash = ""
