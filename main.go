@@ -17,10 +17,10 @@ import (
 	_ "gocloud.dev/pubsub/natspubsub"
 	_ "gocloud.dev/pubsub/rabbitpubsub"
 
-	"github.com/drakkan/sftpgo/v2/sdk/plugin/notifier"
+	"github.com/sftpgo/sdk/plugin/notifier"
 )
 
-const version = "1.0.1"
+const version = "1.0.1-dev"
 
 var (
 	commitHash = ""
@@ -46,6 +46,10 @@ type fsEvent struct {
 	Protocol          string `json:"protocol"`
 	IP                string `json:"ip"`
 	SessionID         string `json:"session_id"`
+	FsProvider        int    `json:"fs_provider"`
+	Bucket            string `json:"bucket,omitempty"`
+	Endpoint          string `json:"endpoint,omitempty"`
+	OpenFlags         int    `json:"open_flags,omitempty"`
 	InstanceID        string `json:"instance_id,omitempty"`
 }
 
@@ -66,25 +70,27 @@ type pubSubNotifier struct {
 	instanceID string
 }
 
-func (n *pubSubNotifier) NotifyFsEvent(timestamp int64, action, username, fsPath, fsTargetPath, sshCmd, protocol, ip,
-	virtualPath, virtualTargetPath, sessionID string, fileSize int64, status int,
-) error {
+func (n *pubSubNotifier) NotifyFsEvent(event *notifier.FsEvent) error {
 	ctx, cancelFn := context.WithDeadline(context.Background(), time.Now().Add(n.timeout))
 	defer cancelFn()
 
 	ev := fsEvent{
-		Timestamp:         getTimeFromNsecSinceEpoch(timestamp).UTC().Format(time.RFC3339Nano),
-		Action:            action,
-		Username:          username,
-		FsPath:            fsPath,
-		FsTargetPath:      fsTargetPath,
-		VirtualPath:       virtualPath,
-		VirtualTargetPath: virtualTargetPath,
-		Protocol:          protocol,
-		IP:                ip,
-		SessionID:         sessionID,
-		FileSize:          fileSize,
-		Status:            status,
+		Timestamp:         getTimeFromNsecSinceEpoch(event.Timestamp).UTC().Format(time.RFC3339Nano),
+		Action:            event.Action,
+		Username:          event.Username,
+		FsPath:            event.Path,
+		FsTargetPath:      event.TargetPath,
+		VirtualPath:       event.VirtualPath,
+		VirtualTargetPath: event.VirtualTargetPath,
+		Protocol:          event.Protocol,
+		IP:                event.IP,
+		SessionID:         event.SessionID,
+		FileSize:          event.FileSize,
+		Status:            event.Status,
+		FsProvider:        event.FsProvider,
+		Bucket:            event.Bucket,
+		Endpoint:          event.Endpoint,
+		OpenFlags:         event.OpenFlags,
 		InstanceID:        n.instanceID,
 	}
 	msg, err := json.Marshal(ev)
@@ -96,31 +102,29 @@ func (n *pubSubNotifier) NotifyFsEvent(timestamp int64, action, username, fsPath
 	err = n.topic.Send(ctx, &pubsub.Message{
 		Body: msg,
 		Metadata: map[string]string{
-			"action": action,
+			"action": event.Action,
 		},
 	})
 	if err != nil {
-		appLogger.Warn("unable to publish fs event to topic", "action", action, "username", username,
-			"virtual path", virtualPath, "error", err)
+		appLogger.Warn("unable to publish fs event to topic", "action", event.Action, "username",
+			event.Username, "virtual path", event.VirtualPath, "error", err)
 		panic(err)
 	}
 	return nil
 }
 
-func (n *pubSubNotifier) NotifyProviderEvent(timestamp int64, action, username, objectType, objectName, ip string,
-	object []byte,
-) error {
+func (n *pubSubNotifier) NotifyProviderEvent(event *notifier.ProviderEvent) error {
 	ctx, cancelFn := context.WithDeadline(context.Background(), time.Now().Add(n.timeout))
 	defer cancelFn()
 
 	ev := providerEvent{
-		Timestamp:  getTimeFromNsecSinceEpoch(timestamp).UTC().Format(time.RFC3339Nano),
-		Action:     action,
-		Username:   username,
-		IP:         ip,
-		ObjectType: objectType,
-		ObjectName: objectName,
-		ObjectData: object,
+		Timestamp:  getTimeFromNsecSinceEpoch(event.Timestamp).UTC().Format(time.RFC3339Nano),
+		Action:     event.Action,
+		Username:   event.Username,
+		IP:         event.IP,
+		ObjectType: event.ObjectType,
+		ObjectName: event.ObjectName,
+		ObjectData: event.ObjectData,
 		InstanceID: n.instanceID,
 	}
 	msg, err := json.Marshal(ev)
@@ -132,12 +136,12 @@ func (n *pubSubNotifier) NotifyProviderEvent(timestamp int64, action, username, 
 	err = n.topic.Send(ctx, &pubsub.Message{
 		Body: msg,
 		Metadata: map[string]string{
-			"action":      action,
-			"object_type": objectType,
+			"action":      event.Action,
+			"object_type": event.ObjectType,
 		},
 	})
 	if err != nil {
-		appLogger.Warn("unable to publish provider event to topic", "action", action, "error", err)
+		appLogger.Warn("unable to publish provider event to topic", "action", event.Action, "error", err)
 		panic(err)
 	}
 	return nil

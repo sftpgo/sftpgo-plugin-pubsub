@@ -65,6 +65,10 @@ The filesystem events will contain a JSON serialized struct in the message body 
 - `protocol`, string. Possible values are `SSH`, `SFTP`, `SCP`, `FTP`, `DAV`, `HTTP`, `HTTPShare`, `DataRetention`
 - `ip`, string. The action was executed from this IP address
 - `session_id`, string. Unique protocol session identifier. For stateless protocols such as HTTP the session id will change for each request
+- `fs_provider`, int. Filesystem provider `0` for local filesystem, `1` for S3 backend, `2` for Google Cloud Storage (GCS) backend, `3` for Azure Blob Storage backend, `4` for local encrypted backend, `5` for SFTP backend
+- `bucket`, string. Non-empty for S3, GCS and Azure backends
+- `endpoint`, string. Non-empty for S3, SFTP and Azure backend if configured
+- `open_flags`, integer. File open flags, can be non-zero for `pre-upload` action. If `file_size` is greater than zero and `open_flags&512 == 0` the target file will not be truncated
 - `instance_id`, string. Included if you pass an instance id as the second CLI parameter
 
 The `action` is also added as metadata.
