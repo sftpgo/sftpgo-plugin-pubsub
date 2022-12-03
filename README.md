@@ -69,6 +69,7 @@ The filesystem events will contain a JSON serialized struct in the message body 
 - `bucket`, string. Non-empty for S3, GCS and Azure backends
 - `endpoint`, string. Non-empty for S3, SFTP and Azure backend if configured
 - `open_flags`, integer. File open flags, can be non-zero for `pre-upload` action. If `file_size` is greater than zero and `open_flags&512 == 0` the target file will not be truncated
+- `role`, string. Included if the user who executed the action has a role
 - `instance_id`, string. Included if you pass an instance id as the second CLI parameter
 
 The `action` is also added as metadata.
@@ -82,6 +83,7 @@ The provider events will contain a JSON serialized struct in the message body wi
 - `object_type`, string. Afftected object type, for example `user`, `admin`, `api_key`
 - `object_name`, string. Unique identifier for the affected object, for example username or key id
 - `object_data`, base64 of the JSON serialized object with sensitive fields removed
+- `role`, string. Included if the admin/user who executed the action has a role
 - `instance_id`, string. Included if you pass an instance id as the second CLI parameter
 
 The `action` and the `object_type`are also added as metadata.

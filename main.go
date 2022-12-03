@@ -20,7 +20,7 @@ import (
 	"github.com/sftpgo/sdk/plugin/notifier"
 )
 
-const version = "1.0.4"
+const version = "1.0.4-dev"
 
 var (
 	commitHash = ""
@@ -50,6 +50,7 @@ type fsEvent struct {
 	Bucket            string `json:"bucket,omitempty"`
 	Endpoint          string `json:"endpoint,omitempty"`
 	OpenFlags         int    `json:"open_flags,omitempty"`
+	Role              string `json:"role,omitempty"`
 	InstanceID        string `json:"instance_id,omitempty"`
 }
 
@@ -61,6 +62,7 @@ type providerEvent struct {
 	ObjectType string `json:"object_type"`
 	ObjectName string `json:"object_name"`
 	ObjectData []byte `json:"object_data"`
+	Role       string `json:"role,omitempty"`
 	InstanceID string `json:"instance_id,omitempty"`
 }
 
@@ -91,6 +93,7 @@ func (n *pubSubNotifier) NotifyFsEvent(event *notifier.FsEvent) error {
 		Bucket:            event.Bucket,
 		Endpoint:          event.Endpoint,
 		OpenFlags:         event.OpenFlags,
+		Role:              event.Role,
 		InstanceID:        n.instanceID,
 	}
 	msg, err := json.Marshal(ev)
@@ -125,6 +128,7 @@ func (n *pubSubNotifier) NotifyProviderEvent(event *notifier.ProviderEvent) erro
 		ObjectType: event.ObjectType,
 		ObjectName: event.ObjectName,
 		ObjectData: event.ObjectData,
+		Role:       event.Role,
 		InstanceID: n.instanceID,
 	}
 	msg, err := json.Marshal(ev)
