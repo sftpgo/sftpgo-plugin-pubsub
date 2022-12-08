@@ -62,7 +62,7 @@ The filesystem events will contain a JSON serialized struct in the message body 
 - `ssh_cmd`, string, included for `ssh_cmd` action
 - `file_size`, integer, included for `pre-upload`, `upload`, `download`, `delete` actions if the file size is greater than `0`
 - `status`, integer. 1 means no error, 2 means a generic error occurred, 3 means quota exceeded error
-- `protocol`, string. Possible values are `SSH`, `SFTP`, `SCP`, `FTP`, `DAV`, `HTTP`, `HTTPShare`, `DataRetention`
+- `protocol`, string. Possible values are `SSH`, `SFTP`, `SCP`, `FTP`, `DAV`, `HTTP`, `HTTPShare`, `DataRetention`, `OIDC`, `EventAction`
 - `ip`, string. The action was executed from this IP address
 - `session_id`, string. Unique protocol session identifier. For stateless protocols such as HTTP the session id will change for each request
 - `fs_provider`, int. Filesystem provider `0` for local filesystem, `1` for S3 backend, `2` for Google Cloud Storage (GCS) backend, `3` for Azure Blob Storage backend, `4` for local encrypted backend, `5` for SFTP backend
