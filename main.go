@@ -20,7 +20,7 @@ import (
 	"github.com/sftpgo/sdk/plugin/notifier"
 )
 
-const version = "1.0.5"
+const version = "1.0.5-dev"
 
 var (
 	commitHash = ""
@@ -42,6 +42,7 @@ type fsEvent struct {
 	VirtualTargetPath string `json:"virtual_target_path,omitempty"`
 	SSHCmd            string `json:"ssh_cmd,omitempty"`
 	FileSize          int64  `json:"file_size,omitempty"`
+	Elapsed           int64  `json:"elapsed,omitempty"`
 	Status            int    `json:"status"`
 	Protocol          string `json:"protocol"`
 	IP                string `json:"ip"`
@@ -88,6 +89,7 @@ func (n *pubSubNotifier) NotifyFsEvent(event *notifier.FsEvent) error {
 		IP:                event.IP,
 		SessionID:         event.SessionID,
 		FileSize:          event.FileSize,
+		Elapsed:           event.Elapsed,
 		Status:            event.Status,
 		FsProvider:        event.FsProvider,
 		Bucket:            event.Bucket,

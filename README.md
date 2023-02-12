@@ -61,6 +61,7 @@ The filesystem events will contain a JSON serialized struct in the message body 
 - `virtual_target_path`, string, target path seen by SFTPGo users
 - `ssh_cmd`, string, included for `ssh_cmd` action
 - `file_size`, integer, included for `pre-upload`, `upload`, `download`, `delete` actions if the file size is greater than `0`
+- `elapsed`, integer. Elapsed time as milliseconds
 - `status`, integer. 1 means no error, 2 means a generic error occurred, 3 means quota exceeded error
 - `protocol`, string. Possible values are `SSH`, `SFTP`, `SCP`, `FTP`, `DAV`, `HTTP`, `HTTPShare`, `DataRetention`, `OIDC`, `EventAction`
 - `ip`, string. The action was executed from this IP address
