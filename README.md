@@ -89,6 +89,19 @@ The provider events will contain a JSON serialized struct in the message body wi
 
 The `action` and the `object_type`are also added as metadata.
 
+The log events will contain a JSON serialized struct in the message body with the following fields:
+
+- `timestamp`, string formatted as RFC3339 with nanoseconds precision
+- `event`, integer, a supported log event type
+- `protocol`, string. Possible values are `SSH`, `SFTP`, `SCP`, `FTP`, `DAV`, `HTTP`, `HTTPShare`, `DataRetention`, `OIDC`, `EventAction`
+- `username`, string
+- `ip`, string
+- `message`, string. Log message
+- `role`, string. Included if the admin/user who executed the action has a role
+- `instance_id`, string. Included if you pass an instance id as the second CLI parameter
+
+The metadata `action` is set to `log` and `event` contains the string representation of the log `event`.
+
 ## Supported services
 
 We use [Go CDK](https://gocloud.dev/howto/pubsub/) to access several publish/subscribe systems in a portable way.

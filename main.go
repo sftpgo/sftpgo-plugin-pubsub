@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,7 +22,7 @@ import (
 	"github.com/sftpgo/sdk/plugin/notifier"
 )
 
-const version = "1.0.6"
+const version = "1.0.7"
 
 var (
 	commitHash = ""
@@ -63,6 +65,17 @@ type providerEvent struct {
 	ObjectType string `json:"object_type"`
 	ObjectName string `json:"object_name"`
 	ObjectData []byte `json:"object_data"`
+	Role       string `json:"role,omitempty"`
+	InstanceID string `json:"instance_id,omitempty"`
+}
+
+type LogEvent struct {
+	Timestamp  string `json:"timestamp"`
+	Event      int    `json:"event"`
+	Protocol   string `json:"protocol,omitempty"`
+	Username   string `json:"username,omitempty"`
+	IP         string `json:"ip,omitempty"`
+	Message    string `json:"message,omitempty"`
 	Role       string `json:"role,omitempty"`
 	InstanceID string `json:"instance_id,omitempty"`
 }
@@ -153,8 +166,57 @@ func (n *pubSubNotifier) NotifyProviderEvent(event *notifier.ProviderEvent) erro
 	return nil
 }
 
+func (n *pubSubNotifier) NotifyLogEvent(event *notifier.LogEvent) error {
+	ctx, cancelFn := context.WithDeadline(context.Background(), time.Now().Add(n.timeout))
+	defer cancelFn()
+
+	ev := LogEvent{
+		Timestamp:  getTimeFromNsecSinceEpoch(event.Timestamp).UTC().Format(time.RFC3339Nano),
+		Event:      int(event.Event),
+		Protocol:   event.Protocol,
+		Username:   event.Username,
+		IP:         event.IP,
+		Message:    event.Message,
+		Role:       event.Role,
+		InstanceID: n.instanceID,
+	}
+	msg, err := json.Marshal(ev)
+	if err != nil {
+		appLogger.Warn("unable to marshal log event", "error", err)
+		return err
+	}
+
+	err = n.topic.Send(ctx, &pubsub.Message{
+		Body: msg,
+		Metadata: map[string]string{
+			"action": "log",
+			"event":  strconv.Itoa(int(event.Event)),
+		},
+	})
+	if err != nil {
+		appLogger.Warn("unable to publish log event to topic", "event", getLogEventString(event.Event), "error", err)
+		panic(err)
+	}
+	return nil
+}
+
 func getTimeFromNsecSinceEpoch(nsec int64) time.Time {
 	return time.Unix(0, nsec)
+}
+
+func getLogEventString(event notifier.LogEventType) string {
+	switch event {
+	case notifier.LogEventTypeLoginFailed:
+		return "Login failed"
+	case notifier.LogEventTypeLoginNoUser:
+		return "Login with non-existent user"
+	case notifier.LogEventTypeNoLoginTried:
+		return "No login tried"
+	case notifier.LogEventTypeNotNegotiated:
+		return "Algorithm negotiation failed"
+	default:
+		return fmt.Sprintf("unknown type: %d", event)
+	}
 }
 
 func getVersionString() string {
