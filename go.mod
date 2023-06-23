@@ -23,7 +23,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus v1.4.0 // indirect
 	github.com/Azure/go-amqp v1.0.1 // indirect
 	github.com/Shopify/sarama v1.38.1 // indirect
-	github.com/aws/aws-sdk-go v1.44.287 // indirect
+	github.com/aws/aws-sdk-go v1.44.288 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.18.1 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.18.27 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.26 // indirect
