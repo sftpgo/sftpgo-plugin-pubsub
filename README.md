@@ -71,6 +71,7 @@ The filesystem events will contain a JSON serialized struct in the message body 
 - `endpoint`, string. Non-empty for S3, SFTP and Azure backend if configured
 - `open_flags`, integer. File open flags, can be non-zero for `pre-upload` action. If `file_size` is greater than zero and `open_flags&512 == 0` the target file will not be truncated
 - `role`, string. Included if the user who executed the action has a role
+- `metadata`, struct
 - `instance_id`, string. Included if you pass an instance id as the second CLI parameter
 
 The `action` is also added as metadata.

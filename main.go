@@ -36,7 +36,7 @@ import (
 	"github.com/sftpgo/sdk/plugin/notifier"
 )
 
-const version = "1.0.7"
+const version = "1.0.8-dev"
 
 var (
 	commitHash = ""
@@ -49,26 +49,27 @@ var appLogger = hclog.New(&hclog.LoggerOptions{
 })
 
 type fsEvent struct {
-	Timestamp         string `json:"timestamp"`
-	Action            string `json:"action"`
-	Username          string `json:"username"`
-	FsPath            string `json:"fs_path"`
-	FsTargetPath      string `json:"fs_target_path,omitempty"`
-	VirtualPath       string `json:"virtual_path"`
-	VirtualTargetPath string `json:"virtual_target_path,omitempty"`
-	SSHCmd            string `json:"ssh_cmd,omitempty"`
-	FileSize          int64  `json:"file_size,omitempty"`
-	Elapsed           int64  `json:"elapsed,omitempty"`
-	Status            int    `json:"status"`
-	Protocol          string `json:"protocol"`
-	IP                string `json:"ip"`
-	SessionID         string `json:"session_id"`
-	FsProvider        int    `json:"fs_provider"`
-	Bucket            string `json:"bucket,omitempty"`
-	Endpoint          string `json:"endpoint,omitempty"`
-	OpenFlags         int    `json:"open_flags,omitempty"`
-	Role              string `json:"role,omitempty"`
-	InstanceID        string `json:"instance_id,omitempty"`
+	Timestamp         string            `json:"timestamp"`
+	Action            string            `json:"action"`
+	Username          string            `json:"username"`
+	FsPath            string            `json:"fs_path"`
+	FsTargetPath      string            `json:"fs_target_path,omitempty"`
+	VirtualPath       string            `json:"virtual_path"`
+	VirtualTargetPath string            `json:"virtual_target_path,omitempty"`
+	SSHCmd            string            `json:"ssh_cmd,omitempty"`
+	FileSize          int64             `json:"file_size,omitempty"`
+	Elapsed           int64             `json:"elapsed,omitempty"`
+	Status            int               `json:"status"`
+	Protocol          string            `json:"protocol"`
+	IP                string            `json:"ip"`
+	SessionID         string            `json:"session_id"`
+	FsProvider        int               `json:"fs_provider"`
+	Bucket            string            `json:"bucket,omitempty"`
+	Endpoint          string            `json:"endpoint,omitempty"`
+	OpenFlags         int               `json:"open_flags,omitempty"`
+	Role              string            `json:"role,omitempty"`
+	Metadata          map[string]string `json:"metadata,omitempty"`
+	InstanceID        string            `json:"instance_id,omitempty"`
 }
 
 type providerEvent struct {
@@ -123,6 +124,7 @@ func (n *pubSubNotifier) NotifyFsEvent(event *notifier.FsEvent) error {
 		Endpoint:          event.Endpoint,
 		OpenFlags:         event.OpenFlags,
 		Role:              event.Role,
+		Metadata:          event.Metadata,
 		InstanceID:        n.instanceID,
 	}
 	msg, err := json.Marshal(ev)
