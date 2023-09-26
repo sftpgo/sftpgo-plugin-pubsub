@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [sftpgo-2.5.x]
   pull_request:
 
 env:
