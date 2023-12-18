@@ -36,7 +36,7 @@ import (
 	"github.com/sftpgo/sdk/plugin/notifier"
 )
 
-const version = "1.0.9"
+const version = "1.0.10"
 
 var (
 	commitHash = ""
