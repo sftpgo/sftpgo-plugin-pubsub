@@ -1,6 +1,6 @@
 # SFTPGo Pub/Sub plugin
 
-![Build](https://github.com/sftpgo/sftpgo-plugin-pubsub/workflows/Build/badge.svg?branch=main&event=push)
+![Build](https://github.com/sftpgo/sftpgo-plugin-pubsub/workflows/Build/badge.svg)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 This plugin allows to send [SFTPGo](https://github.com/drakkan/sftpgo/) filesystem and provider events to publish/subscribe systems. It is not meant to react to `pre-*` events. It simply forwards the configured events to an external pub/sub system.
