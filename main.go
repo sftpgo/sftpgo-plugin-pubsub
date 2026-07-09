@@ -136,7 +136,9 @@ func (n *pubSubNotifier) NotifyFsEvent(event *notifier.FsEvent) error {
 	err = n.topic.Send(ctx, &pubsub.Message{
 		Body: msg,
 		Metadata: map[string]string{
-			"action": event.Action,
+			"action":       event.Action,
+			"username":     event.Username,
+			"virtual_path": event.VirtualPath,
 		},
 	})
 	if err != nil {

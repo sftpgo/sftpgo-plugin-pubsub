@@ -74,7 +74,7 @@ The filesystem events will contain a JSON serialized struct in the message body 
 - `metadata`, struct
 - `instance_id`, string. Included if you pass an instance id as the second CLI parameter
 
-The `action` is also added as metadata.
+The `action`, `virtual_path`, and `username` are also added as metadata.
 
 The provider events will contain a JSON serialized struct in the message body with the following fields:
 
