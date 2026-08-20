@@ -26,7 +26,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IBM/sarama"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
 	"gocloud.dev/pubsub"
@@ -253,41 +252,76 @@ func getVersionString() string {
 	return sb.String()
 }
 
-// isKafkaURL checks if the URL scheme is "kafka"
+const (
+	kafkaBrokersEnv       = "KAFKA_BROKERS"
+	kafkaTLSEnableEnv     = "KAFKA_TLS_ENABLE"
+	kafkaTLSCAEnv         = "KAFKA_TLS_CA"
+	kafkaTLSCertEnv       = "KAFKA_TLS_CERT"
+	kafkaTLSKeyEnv        = "KAFKA_TLS_KEY"
+	kafkaTLSSkipVerifyEnv = "KAFKA_TLS_SKIP_VERIFY"
+)
+
+// isKafkaURL reports whether topicURL uses the Kafka URL scheme.
 func isKafkaURL(topicURL string) bool {
-	return strings.HasPrefix(topicURL, "kafka://")
-}
-
-// getKafkaTopicName extracts the topic name from a kafka:// URL
-func getKafkaTopicName(topicURL string) (string, error) {
 	u, err := url.Parse(topicURL)
-	if err != nil {
-		return "", fmt.Errorf("invalid kafka URL: %w", err)
-	}
-	// Topic name is the host + path
-	topicName := u.Host
-	if u.Path != "" && u.Path != "/" {
-		topicName = topicName + u.Path
-	}
-	if topicName == "" {
-		return "", fmt.Errorf("topic name is required in kafka URL")
-	}
-	return topicName, nil
+	return err == nil && u.Scheme == kafkapubsub.Scheme
 }
 
-// createKafkaTLSConfig creates a TLS configuration from environment variables
+// parseEnvBool parses a boolean environment variable. An unset or empty
+// variable is false; malformed values are rejected to avoid silently running
+// with weaker security than intended.
+func parseEnvBool(name string) (bool, error) {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" {
+		return false, nil
+	}
+
+	enabled, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, fmt.Errorf("%s must be a boolean: %w", name, err)
+	}
+	return enabled, nil
+}
+
+// kafkaBrokers returns the validated Kafka broker list from KAFKA_BROKERS.
+func kafkaBrokers() ([]string, error) {
+	brokerList := strings.TrimSpace(os.Getenv(kafkaBrokersEnv))
+	if brokerList == "" {
+		return nil, fmt.Errorf("%s environment variable is required for Kafka", kafkaBrokersEnv)
+	}
+
+	brokers := strings.Split(brokerList, ",")
+	for i := range brokers {
+		brokers[i] = strings.TrimSpace(brokers[i])
+		if brokers[i] == "" {
+			return nil, fmt.Errorf("%s contains an empty broker address", kafkaBrokersEnv)
+		}
+	}
+	return brokers, nil
+}
+
+// createKafkaTLSConfig creates a TLS configuration from environment variables.
 // Environment variables:
 //   - KAFKA_TLS_CA: path to CA certificate file
 //   - KAFKA_TLS_CERT: path to client certificate file
 //   - KAFKA_TLS_KEY: path to client key file
 //   - KAFKA_TLS_SKIP_VERIFY: set to "true" to skip server certificate verification
 func createKafkaTLSConfig() (*tls.Config, error) {
-	caFile := os.Getenv("KAFKA_TLS_CA")
-	certFile := os.Getenv("KAFKA_TLS_CERT")
-	keyFile := os.Getenv("KAFKA_TLS_KEY")
-	skipVerify := os.Getenv("KAFKA_TLS_SKIP_VERIFY") == "true"
+	caFile := strings.TrimSpace(os.Getenv(kafkaTLSCAEnv))
+	certFile := strings.TrimSpace(os.Getenv(kafkaTLSCertEnv))
+	keyFile := strings.TrimSpace(os.Getenv(kafkaTLSKeyEnv))
+	skipVerify, err := parseEnvBool(kafkaTLSSkipVerifyEnv)
+	if err != nil {
+		return nil, err
+	}
+	if (certFile == "") != (keyFile == "") {
+		return nil, fmt.Errorf("%s and %s must be configured together", kafkaTLSCertEnv, kafkaTLSKeyEnv)
+	}
 
+	// InsecureSkipVerify is intentionally configurable for development and
+	// private PKI diagnostics. Verification remains enabled by default.
 	tlsConfig := &tls.Config{
+		//nolint:gosec // Explicit opt-in through KAFKA_TLS_SKIP_VERIFY; documented as unsafe.
 		InsecureSkipVerify: skipVerify,
 		MinVersion:         tls.VersionTLS12,
 	}
@@ -298,7 +332,11 @@ func createKafkaTLSConfig() (*tls.Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to read CA certificate from %s: %w", caFile, err)
 		}
-		caCertPool := x509.NewCertPool()
+		caCertPool, err := x509.SystemCertPool()
+		if err != nil {
+			appLogger.Warn("unable to load system CA pool; using only the configured Kafka CA", "error", err)
+			caCertPool = x509.NewCertPool()
+		}
 		if !caCertPool.AppendCertsFromPEM(caCert) {
 			return nil, fmt.Errorf("failed to parse CA certificate from %s", caFile)
 		}
@@ -306,8 +344,8 @@ func createKafkaTLSConfig() (*tls.Config, error) {
 		appLogger.Info("loaded CA certificate", "file", caFile)
 	}
 
-	// Load client certificate and key if provided (for mTLS)
-	if certFile != "" && keyFile != "" {
+	// Load the client certificate and key when mTLS is configured.
+	if certFile != "" {
 		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load client certificate/key from %s/%s: %w", certFile, keyFile, err)
@@ -319,54 +357,64 @@ func createKafkaTLSConfig() (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
-// openKafkaTopicWithTLS opens a Kafka topic with TLS configuration from environment variables
+// kafkaURLOpener creates a Go CDK Kafka URL opener using the standard URL
+// semantics and a Sarama configuration extended with optional TLS.
+func kafkaURLOpener() (*kafkapubsub.URLOpener, bool, error) {
+	brokers, err := kafkaBrokers()
+	if err != nil {
+		return nil, false, err
+	}
+
+	tlsEnabled, err := parseEnvBool(kafkaTLSEnableEnv)
+	if err != nil {
+		return nil, false, err
+	}
+
+	config := kafkapubsub.MinimalConfig()
+	if tlsEnabled {
+		tlsConfig, err := createKafkaTLSConfig()
+		if err != nil {
+			return nil, false, fmt.Errorf("configure Kafka TLS: %w", err)
+		}
+		config.Net.TLS.Enable = true
+		config.Net.TLS.Config = tlsConfig
+		if tlsConfig.InsecureSkipVerify {
+			appLogger.Warn("Kafka TLS server certificate verification is disabled")
+		}
+	}
+
+	return &kafkapubsub.URLOpener{Brokers: brokers, Config: config}, tlsEnabled, nil
+}
+
+// openKafkaTopic opens a Kafka topic with optional TLS configuration from
+// environment variables while preserving kafkapubsub URL options.
 // Environment variables:
 //   - KAFKA_BROKERS: comma-separated list of broker addresses (required)
 //   - KAFKA_TLS_ENABLE: set to "true" to enable TLS
 //   - KAFKA_TLS_CA, KAFKA_TLS_CERT, KAFKA_TLS_KEY: TLS certificate paths
-func openKafkaTopicWithTLS(ctx context.Context, topicURL string) (*pubsub.Topic, error) {
-	topicName, err := getKafkaTopicName(topicURL)
+func openKafkaTopic(ctx context.Context, topicURL string) (*pubsub.Topic, error) {
+	u, err := url.Parse(topicURL)
+	if err != nil {
+		return nil, fmt.Errorf("parse Kafka topic URL: %w", err)
+	}
+	if u.Scheme != kafkapubsub.Scheme {
+		return nil, fmt.Errorf("Kafka topic URL must use the %q scheme", kafkapubsub.Scheme)
+	}
+	if u.Host == "" {
+		return nil, fmt.Errorf("Kafka topic URL must include a topic name")
+	}
+
+	opener, tlsEnabled, err := kafkaURLOpener()
 	if err != nil {
 		return nil, err
 	}
+	appLogger.Info("configuring Kafka connection", "brokers", opener.Brokers, "topic", u.Host+u.Path,
+		"tls", tlsEnabled)
 
-	brokerList := os.Getenv("KAFKA_BROKERS")
-	if brokerList == "" {
-		return nil, fmt.Errorf("KAFKA_BROKERS environment variable is required for Kafka")
-	}
-	brokers := strings.Split(brokerList, ",")
-	for i, b := range brokers {
-		brokers[i] = strings.TrimSpace(b)
-	}
-
-	appLogger.Info("configuring Kafka connection", "brokers", brokers, "topic", topicName)
-
-	// Create sarama config
-	config := sarama.NewConfig()
-	config.Version = sarama.V2_0_0_0
-	config.Producer.Return.Successes = true
-	config.Producer.RequiredAcks = sarama.WaitForAll
-	config.Producer.Retry.Max = 3
-
-	// Configure TLS if enabled
-	tlsEnable := os.Getenv("KAFKA_TLS_ENABLE") == "true"
-	if tlsEnable {
-		appLogger.Info("TLS is enabled for Kafka connection")
-		tlsConfig, err := createKafkaTLSConfig()
-		if err != nil {
-			return nil, fmt.Errorf("failed to create TLS config: %w", err)
-		}
-		config.Net.TLS.Enable = true
-		config.Net.TLS.Config = tlsConfig
-	}
-
-	// Open topic using kafkapubsub directly (not via URL opener)
-	topic, err := kafkapubsub.OpenTopic(brokers, config, topicName, nil)
+	topic, err := opener.OpenTopicURL(ctx, u)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open Kafka topic %s: %w", topicName, err)
+		return nil, fmt.Errorf("open Kafka topic %q: %w", u.Host+u.Path, err)
 	}
-
-	appLogger.Info("successfully connected to Kafka topic", "topic", topicName, "tls", tlsEnable)
 	return topic, nil
 }
 
@@ -391,7 +439,7 @@ func main() {
 
 	// Use custom Kafka opener with TLS support for kafka:// URLs
 	if isKafkaURL(topicUrl) {
-		topic, err = openKafkaTopicWithTLS(ctx, topicUrl)
+		topic, err = openKafkaTopic(ctx, topicUrl)
 	} else {
 		// Use default Go CDK URL opener for other pubsub systems
 		topic, err = pubsub.OpenTopic(ctx, topicUrl)

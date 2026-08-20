@@ -158,3 +158,13 @@ To publish events to a [Kafka](https://kafka.apache.org/) cluster, you have to u
 Here is a sample URL: `kafka://my-topic`.
 
 The brokers in the Kafka cluster are discovered from the `KAFKA_BROKERS` environment variable (which is a comma-delimited list of hosts, something like `1.2.3.4:9092,5.6.7.8:9092`).
+
+Kafka TLS is configured using the following environment variables:
+
+- `KAFKA_TLS_ENABLE`: enables TLS when set to a value accepted by Go's boolean parser, such as `true` or `1`. TLS is disabled by default.
+- `KAFKA_TLS_CA`: optional path to a PEM-encoded CA certificate. The configured CA is added to the system trust store.
+- `KAFKA_TLS_CERT`: optional path to a PEM-encoded client certificate for mutual TLS.
+- `KAFKA_TLS_KEY`: optional path to the private key matching `KAFKA_TLS_CERT`. The certificate and key must be configured together.
+- `KAFKA_TLS_SKIP_VERIFY`: disables server certificate and hostname verification when `true`. This is unsafe and should only be used for temporary diagnostics.
+
+TLS connections require TLS 1.2 or newer. Server certificate verification is enabled by default. Existing Kafka topic URL options remain supported; for example, `kafka://my-topic?key_name=action` uses the `action` message metadata value as the Kafka record key.
